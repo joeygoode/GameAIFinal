@@ -1,0 +1,70 @@
+Type dining minimum 1 maximum 1
+Type kitchen minimum 1 maximum 2
+Type parlour 
+Type bedroom minimum 1 
+
+Furniture table ->
+: dining 20
+: kitchen 10
+
+Furniture chair ->
+: dining 20
+: kitchen 5
+: parlour 10
+
+Furniture television ->
+: parlour 20
+: bedroom 5
+
+Furniture bed ->
+: bedroom 20
+: parlour -5
+: kitchen -20
+: dining -20
+
+Furniture range ->
+: kitchen 20
+
+Furniture counter ->
+: kitchen 10
+
+Furniture stool ->
+: kitchen 10
+
+Furniture end_table ->
+: bedroom 10
+: parlour 10
+
+Furniture dresser ->
+: bedroom 20
+
+Furniture wardrobe ->
+: bedroom 20
+
+Furniture larder ->
+: kitchen 20
+
+Furniture keg ->
+: kitchen 20
+
+Furniture fireplace ->
+: dining 10
+: parlour 10
+: bedroom 10
+
+Furniture bell ->
+: dining 10
+
+Furniture clock ->
+: bedroom 10
+: parlour 10
+
+Furniture rug ->
+: dining 10
+: parlour 10
+: bedroom 10
+
+Furniture bookcase ->
+: bedroom 10
+: parlour 10
+: kitchen 5
