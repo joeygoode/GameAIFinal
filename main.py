@@ -13,7 +13,9 @@ class World:
 			for line in room_file:
 				if line == "\n": continue
 				lines = line.split()
-				if lines[0] == "Type":
+				if lines[0] == "##":
+					continue
+				elif lines[0] == "Type":
 					room_type = lines[1]
 					lines.pop(0)
 					lines.pop(0)
@@ -34,12 +36,13 @@ class World:
 								split_line = attributes_line.split()
 								if (split_line[0] == ":"):
 									room_type = split_line[1]
-									room_modifier = split_line[2]
-									furniture[furniture_name][room_type] = room_modifier
+									if room_type in room_types.keys():
+										room_modifier = split_line[2]
+										furniture[furniture_name][room_type] = room_modifier
 		print(room_types)
 		print("\n")
 		print(furniture)
-		
+
 
 
 
