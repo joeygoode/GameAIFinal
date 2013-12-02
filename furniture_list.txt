@@ -14,71 +14,90 @@
 
 Type dining minimum 1 maximum 1
 Type kitchen minimum 1 maximum 2
-Type parlour 
+Type parlour maximum 2
 Type bedroom minimum 1 
 
 Furniture table ->
+$ size 40
 : dining 20
 : kitchen 10
 
 Furniture chair ->
+$ size 10
 : dining 20
 : kitchen 5
 : parlour 10
 
 Furniture television ->
+$ size 10
 : parlour 20
 : bedroom 5
 
 Furniture bed ->
+$ size 50
 : bedroom 20
 : parlour -5
 : kitchen -20
 : dining -20
 
 Furniture range ->
+$ size 30
 : kitchen 20
 
 Furniture counter ->
+$ size 10
+$ maximum 1
 : kitchen 10
 
 Furniture stool ->
+$ size 10
 : kitchen 10
 
 Furniture end_table ->
+$ size 10
 : bedroom 10
 : parlour 10
 
 Furniture dresser ->
+$ size 25
 : bedroom 20
 
 Furniture wardrobe ->
+$ size 30
 : bedroom 20
 
 Furniture larder ->
+$ size 20
 : kitchen 20
 
 Furniture keg ->
+$ size 10
 : kitchen 20
 
 Furniture fireplace ->
+$ size 10
+$ maximum 1
 : dining 10
 : parlour 10
 : bedroom 10
 
 Furniture bell ->
+$ size 2
 : dining 10
 
 Furniture clock ->
+$ size 5
 : bedroom 10
 : parlour 10
 
 Furniture rug ->
+$ maximum 1
 : dining 10
 : parlour 10
 : bedroom 10
 
 Furniture bookcase ->
+$ size 10
 : bedroom 10
 : parlour 10
 : kitchen 5
