@@ -93,7 +93,7 @@ class World:
 				else:
 					l[len(l):] = [e]
 					return l
-			while fold(add,0,map(getSize,furniture_in_room)) < random.random() * room_size:
+			while fold(add,0,map(getSize,furniture_in_room)) < room_size:
 				modifiers = calculate_modifiers(room_types, furniture_in_room)
 				modifiers = adjust_modifiers(room_types, room_satisfaction, modifiers)
 				peak_modifiers = fold(max_list, [], modifiers.items())
@@ -104,19 +104,30 @@ class World:
 					else:
 						return False
 				peak_furniture = list(filter(is_peak_furniture, furniture))
-				this_item = peak_furniture[random.randint(0,len(peak_furniture) - 1)]
+				while(peak_furniture):
+					this_item = peak_furniture[random.randint(0,len(peak_furniture) - 1)]
+					if this_item.attributes.get("maximum",0) > 0:
+						count = 1
+						for f in furniture_in_room:
+							if f.name == this_item.name:
+								count += 1
+						if count > this_item.attributes["maximum"]:
+							peak_furniture.remove(this_item)
+						else:
+							break
+					else:
+						break
+				else:
+					break
 				furniture_in_room.append(this_item)
 				print("Adding " + repr(this_item) + "\n")
-			else:
-				modifiers = calculate_modifiers(room_types, furniture_in_room)
-				print(modifiers)
-				peak_modifiers = fold(max_list, [], modifiers.items())
-				print(peak_modifiers)
-				peak_modifier = peak_modifiers[0][0]
-				room_satisfaction[peak_modifier] += 1
-				print(room_satisfaction)
-				self.rooms.append(Room(peak_modifier, furniture_in_room, []))
-		#print(self.rooms)
+			
+			modifiers = calculate_modifiers(room_types, furniture_in_room)
+			peak_modifiers = fold(max_list, [], modifiers.items())
+			peak_modifier = peak_modifiers[0][0]
+			room_satisfaction[peak_modifier] += 1
+			self.rooms.append(Room(peak_modifier, furniture_in_room, []))
+		print(self.rooms)
 
 
 def fold(function, base, l):
@@ -198,5 +209,3 @@ class Trait:
 """
 print("Hello World")
 world = World()
-var = input()
-print(var)
