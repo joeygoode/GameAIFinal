@@ -21,10 +21,18 @@ class World:
 						lines.pop(0)
 						lines.pop(0)
 						room_attributes = dict()
-						if len(lines) > 2:
+						while lines != ["->"] and len(lines) > 2:
 							attribute = lines.pop(0)
 							value = lines.pop(0)
 							room_attributes[attribute] = value
+						if lines == "->":
+							for attributes_line in room_file:
+								if attributes_line == "\n":
+									break
+								split_line = attributes_line.split()
+								if split_line[0] == ":":
+									if split_line[1] == "near":
+										room_attributes["near"].append(split_line[2])
 						room_types[room_type] = room_attributes
 					elif lines[0] == "Furniture":
 						this_item = Furniture(lines[1])
@@ -78,6 +86,7 @@ class World:
 		room_satisfaction = dict()
 		for k in room_types.keys():
 			room_satisfaction[k] = 0
+		rooms = []
 		while random.random() > .5 or not are_rooms_satisfied(room_satisfaction, room_types) :
 			furniture_in_room = []
 			room_size = random.randint(75,125)
@@ -126,9 +135,79 @@ class World:
 			peak_modifiers = fold(max_list, [], modifiers.items())
 			peak_modifier = peak_modifiers[0][0]
 			room_satisfaction[peak_modifier] += 1
-			self.rooms.append(Room(peak_modifier, furniture_in_room, []))
+			rooms.append(Room(peak_modifier, furniture_in_room, []))
+		print(rooms)
+		current_room = Room("outside",[],[])
+		del current_room.connections["up"]
+		del current_room.connections["down"]
+		self.rooms.append(current_room)
+		while rooms:
+			next_room = rooms[random.randint(0,len(rooms) - 1)]
+			rooms.remove(next_room)
+			nearby_room_types = []
+			for k,v in room_types.items():
+				if k == "near" and v == next_room.theme:
+					nearby_room_types.append[k]
+			adjacent_room = None
+			adjacent_connection = None
+			if nearby_room_types:
+				possible_nearby_rooms = list(filter(lambda r: r.theme() in nearby_room_types, self.rooms))
+				while possible_nearby_rooms:
+					adjacent_room = possible_nearby_rooms[random.randint(0,len(possible_nearby_rooms)- 1)]
+					connections = adjacent_room.connections.items()
+					random.shuffle(connections)
+					for k,v in connections:
+						if v == None:
+							adjacent_connection = k
+							break
+				else:
+					adjacent_room = self.rooms[random.randint(0,len(self.rooms) - 1)]
+					connections = adjacent_room.connections.items()
+					random.shuffle(connections)
+					for k,v in connections:
+						if v == None:
+							adjacent_connection = k
+			else:
+				adjacent_room = self.rooms[random.randint(0,len(self.rooms) - 1)]
+				connections = list(adjacent_room.connections.items())
+				random.shuffle(connections)
+				for k,v in connections:
+					if v == None:
+						adjacent_connection = k
+			def get_opposite_connection(direction):
+				if direction == "up":
+					return "down"
+				elif direction == "down":
+					return "up"
+				elif direction == "east":
+					return "west"
+				elif direction == "west":
+					return "east"
+				elif direction == "north":
+					return "south"
+				elif direction == "south":
+					return "north"
+				else:
+					return None
+			def get_connection_search_directions(direction):
+				if direction == "up" or direction == "down":
+					return ["north","south","east","west"]
+				elif direction == "east" or direction == "west":
+					return ["north","south","up","down"]
+				elif direction == "north" or direction == "south":
+					return ["east","west","up","down"]
+				else:
+					return None
+			adjacent_room.connections[adjacent_connection] = next_room
+			next_room.connections[get_opposite_connection(adjacent_connection)] = adjacent_room
+			for direction in get_connection_search_directions(adjacent_connection):
+				if adjacent_room.connections.get(direction,None) == None:
+					continue
+				if adjacent_room.connections[direction].connections.get(adjacent_connection,None) == None:
+					continue
+				adjacent_room.connections[direction].connections[adjacent_connection].connections[get_opposite_connection(direction)] = next_room;
+				next_room.connections[direction] = adjacent_room.connections[direction].connections[adjacent_connection]
 		print(self.rooms)
-
 
 def fold(function, base, l):
 	for e in l:
@@ -154,9 +233,7 @@ class Room:
 		self.theme = theme
 		self.furniture = furniture
 		self.people = people
-		self.connections = []
-	def connect_room(self, room):
-		self.connections.append(room)
+		self.connections = {"north":None, "south":None, "east":None, "west":None, "up":None, "down":None}
 	def __repr__(self):
 		return "\n" + repr(self.theme) + "\n" + repr(self.furniture)
 

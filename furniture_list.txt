@@ -12,13 +12,17 @@
 ## Whitespace is important.  You will get undefined behaviour if
 ## you don't pay attention to whitespace
 
-Type dining minimum 1 maximum 1
-Type kitchen minimum 1 maximum 2
+Type dining minimum 1 maximum 1 ->
+: near kitchen
+Type kitchen minimum 1 maximum 2 ->
+: near dining
 Type parlour maximum 2
+: near outside
 Type bedroom minimum 1 
 
 Furniture table ->
 $ size 40
+$ maximum 2
 : dining 20
 : kitchen 10
 
