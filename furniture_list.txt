@@ -3,22 +3,33 @@
 ## "## " Defines a comment
 
 ## To define a room type:
-## "Type <type_name> (<attribute_name> <attribute value> )*"
+## "Type <type_name> -> \n
+## (: <attribute_name> <attribute_value> \n)*"
 
 ## To define a furniture item
 ## "Furniture <item_name> -> \n
-## (: <room_type> <room_value> \n)*"
+## (: <room_type> <room_value> \n | $ <room_attribute> <attribute_value> \n)* "
 
 ## Whitespace is important.  You will get undefined behaviour if
 ## you don't pay attention to whitespace
 
-Type dining minimum 1 maximum 1 ->
+Type dining ->
+: minimum 1
+: maximum 1
 : near kitchen
-Type kitchen minimum 1 maximum 2 ->
+
+Type kitchen ->
 : near dining
-Type parlour maximum 2
+: minimum 1
+: maximum 2
+
+Type parlour ->
+: maximum 2
 : near outside
-Type bedroom minimum 1 
+
+Type bedroom ->
+: minimum 1
+: maximum 2
 
 Furniture table ->
 $ size 40
