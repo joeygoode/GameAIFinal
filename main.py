@@ -18,21 +18,20 @@ class World:
 						continue
 					elif lines[0] == "Type":
 						room_type = lines[1]
-						lines.pop(0)
-						lines.pop(0)
 						room_attributes = dict()
-						while lines != ["->"] and len(lines) > 2:
-							attribute = lines.pop(0)
-							value = lines.pop(0)
-							room_attributes[attribute] = value
-						if lines == "->":
+						if lines[2] == "->":
 							for attributes_line in room_file:
 								if attributes_line == "\n":
 									break
-								split_line = attributes_line.split()
-								if split_line[0] == ":":
-									if split_line[1] == "near":
-										room_attributes["near"].append(split_line[2])
+								else:
+									split_line = attributes_line.split()
+									if split_line[0] == ":":
+										if split_line[1] == "near":
+											if "near" not in room_attributes:
+												room_attributes["near"] = []
+											room_attributes["near"].append(split_line[2])
+										else:
+											room_attributes[split_line[1]] = split_line[2]
 						room_types[room_type] = room_attributes
 					elif lines[0] == "Furniture":
 						this_item = Furniture(lines[1])
@@ -80,9 +79,6 @@ class World:
 		room_types = dict()
 		furniture = []
 		parse_furniture_file(room_types, furniture)
-		print(room_types)
-		print("\n")
-		print(furniture)
 		room_satisfaction = dict()
 		for k in room_types.keys():
 			room_satisfaction[k] = 0
@@ -132,40 +128,41 @@ class World:
 				else:
 					break
 				furniture_in_room.append(this_item)
-				print("Adding " + repr(this_item) + "\n")
-			
 			modifiers = calculate_modifiers(room_types, furniture_in_room)
 			peak_modifiers = fold(max_list, [], modifiers.items())
 			peak_modifier = peak_modifiers[0][0]
 			room_satisfaction[peak_modifier] += 1
 			rooms.append(Room(peak_modifier, furniture_in_room, []))
-		print(rooms)
 		current_room = Room("outside",[],[])
 		del current_room.connections["up"]
 		del current_room.connections["down"]
 		self.rooms.append(current_room)
+		print("Adding rooms")
 		while rooms:
 			next_room = rooms[random.randint(0,len(rooms) - 1)]
 			rooms.remove(next_room)
 			nearby_room_types = []
-			for k,v in room_types.items():
-				if k == "near" and v == next_room.theme:
-					nearby_room_types.append[k]
+			for k,v in room_types[next_room.theme].items():
+				if k == "near":
+					nearby_room_types = v
 			adjacent_room = None
 			adjacent_connection = None
 			if nearby_room_types:
-				possible_nearby_rooms = list(filter(lambda r: r.theme() in nearby_room_types, self.rooms))
+				possible_nearby_rooms = list(filter(lambda r: r.theme in nearby_room_types, self.rooms))
 				while possible_nearby_rooms:
 					adjacent_room = possible_nearby_rooms[random.randint(0,len(possible_nearby_rooms)- 1)]
-					connections = adjacent_room.connections.items()
+					connections = list(adjacent_room.connections.items())
 					random.shuffle(connections)
 					for k,v in connections:
 						if v == None:
 							adjacent_connection = k
 							break
+					else:
+						continue
+					break
 				else:
 					adjacent_room = self.rooms[random.randint(0,len(self.rooms) - 1)]
-					connections = adjacent_room.connections.items()
+					connections = list(adjacent_room.connections.items())
 					random.shuffle(connections)
 					for k,v in connections:
 						if v == None:
@@ -210,13 +207,25 @@ class World:
 					continue
 				adjacent_room.connections[direction].connections[adjacent_connection].connections[get_opposite_connection(direction)] = next_room;
 				next_room.connections[direction] = adjacent_room.connections[direction].connections[adjacent_connection]
-		self.characters = []
-		self.characters.append(Player([], [], random.choice(self.rooms)))
+			self.rooms.append(next_room)
+		def parse_trait_file(stats):
+			with open("trait_list.txt") as stat_file:
+				for line in stat_file:
+					if line == "\n":
+						continue
+					lines = line.split()
+					if lines[0] == "##":
+						continue
+					elif lines[0] == "Stat":
+						stat_type = lines[1]
+		# self.characters = []
+		# self.characters.append(Player([], [], random.choice(self.rooms)))
 		print(self.rooms)
-	def update(self):
-		for char in self.characters:
-			char.select_action(self)
+	# def update(self):
+	# 	for char in self.characters:
+	#		char.select_action(self)
 		
+
 
 def fold(function, base, l):
 	for e in l:
@@ -246,9 +255,16 @@ class Room:
 	def __repr__(self):
 		return "\n" + repr(self.theme) + "\n" + repr(self.furniture)
 
+class Character:
+	def __init__(self, stats):
+		self.stats = stats
 
+class Player:
+	def __init__(self,world):
+		self.room = world.rooms[0]
+		self.isAlive = True
 
-
+"""
 class Character:
 	def __init__(self, traits, actions, location):
 		self.traits = traits
@@ -266,7 +282,7 @@ class Player(Character):
 				act.attempt(self, world)
 				return
 		print("\nInvalid Command\n")
-
+"""
 # precondition functions ==============================================
 
 def room_in_direction(character, direction):
@@ -376,7 +392,51 @@ class Trait:
 	def evaluate(self, knowledge_representation):
 		return self.function(knowledge_representation)
 """
-print("Hello World")
 world = World()
-while(True):
-	world.update()
+player = Player(world)
+while player.isAlive:
+	print("The room you are in looks like a " + player.room.theme + "\n")
+	print("\n")
+	for furniture in player.room.furniture:
+		print("There is a " + furniture.name + " in the room.\n")
+	for k,v in player.room.connections.items():
+		if v == None:
+			continue
+		else:
+			print("A " + v.theme + " is to the " + k + ".\n")
+	action_accepted = False
+	while not action_accepted:
+		action = input("-->")
+		action_words = action.split()
+		if len(action_words) == 3:
+			if action_words[0] == "go" or action_words[0] == "move":
+				if(action_words[1] == "to"):
+					for k,v in player.room.connections.items():
+						if v != None and action_words[2] == v.theme:
+							player.room = v;
+							action_accepted = True
+				else:
+					print("Movement commands require a target.")
+			else:
+				print("I don't understand you.")
+		elif len(action_words) == 2:
+			if action_words[0] == "kill" and action_words[1] == "me":
+				player.isAlive = False
+				action_accepted = True
+			elif action_words[0] == "go" or action_words[0] == "move":
+				for k,v in player.room.connections.items():
+					if action_words[1] == k:
+						player.room = v;
+						action_accepted = True
+			else:
+				print("I don't understand you.")
+		else:
+			print("I don't understand you.")
+			print(len(action_words))
+else:
+	print("You are dead.")
+
+# print("Hello World")
+# world = World()
+# while(True):
+#	world.update()
