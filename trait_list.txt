@@ -1,0 +1,55 @@
+Stat Openness_to_experience
+Stat Conscientiousness
+Stat Extraversion
+Stat Agreeableness
+Stat Neuroticism
+## Stat Self-esteem
+## Stat Harm_Avoidance
+## Stat Novelty_seeking
+## Stat Perfectionism
+## Stat Alexithymia
+## Stat Rigidity
+## Stat Impulsivity
+## Stat Disinhibition
+## Stat Psychoticism
+## Stat Obsessionality
+
+Trait accessible ->
+minimize distance me colleagues
+
+Trait alert ->
+detection + 2
+
+Trait amiable ->
+relationship_increase * 2
+
+Trait calm ->
+arousal maximum 75
+
+Trait clever ->
+plan steps + 2
+
+Trait courageous ->
+risk_tolerance + 2
+
+Trait decisive ->
+plan steps * 2
+plan interval / 2
+
+Trait discreet ->
+visibility - 2
+
+Trait educated ->
+intelligence + 2
+
+Trait eloquent ->
+speech + 2
+
+Trait flexible ->
+plan interval * 2
+
+Trait honorable ->
+commitment + 2
+
+Trait incorruptible ->
+honesty + 2
