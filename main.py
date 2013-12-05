@@ -83,6 +83,9 @@ class World:
 		for k in room_types.keys():
 			room_satisfaction[k] = 0
 		rooms = []
+
+		input("About to set up rooms...")
+		
 		while random.random() > .5 or not are_rooms_satisfied(room_satisfaction, room_types) :
 			furniture_in_room = []
 			room_size = random.randint(75,125)
@@ -215,6 +218,13 @@ class World:
 						continue
 					elif lines[0] == "Stat":
 						stat_type = lines[1]
+		# self.characters = []
+		# self.characters.append(Player([], [], random.choice(self.rooms)))
+		print(self.rooms)
+	# def update(self):
+	# 	for char in self.characters:
+	#		char.select_action(self)
+		
 
 
 def fold(function, base, l):
@@ -255,6 +265,98 @@ class Player:
 		self.isAlive = True
 
 """
+class Character:
+	def __init__(self, traits, actions, location):
+		self.traits = traits
+		self.actions = actions
+		# self.goal = current_worldstate
+		self.location = location
+	def __repr__(self):
+		return "\nCharacter at " + repr(self.location) + "\n"
+
+class Player(Character):
+	def select_action(self, world):
+		instring = input(">> ")
+		for act in self.actions:
+			if act == instring:
+				act.attempt(self, world)
+				return
+		print("\nInvalid Command\n")
+"""
+# precondition functions ==============================================
+
+def room_in_direction(character, direction):
+        if (character.location.connections[direction] == None):
+                return False
+        else:
+                return True
+
+def room_to_north(character, world):
+        return room_in_direction(character, "north")
+
+def room_to_south(character, world):
+        return room_in_direction(character, "south")
+
+def room_to_east(character, world):
+        return room_in_direction(character, "east")
+
+def room_to_west(character, world):
+        return room_in_direction(character, "west")
+
+def room_to_up(character, world):
+        return room_in_direction(character, "up")
+
+def room_to_down(character, world):
+        return room_in_direction(character, "down")
+
+# effect functions ====================================================
+
+def goto_direction(character, direction):
+        character.location = character.location.connections[direction]
+
+def goto_north(character, world):
+        goto_direction(character, "north")
+
+def goto_south(character, world):
+        goto_direction(character, "south")
+
+def goto_east(character, world):
+        goto_direction(character, "east")
+
+def goto_west(character, world):
+        goto_direction(character, "west")
+
+def goto_up(character, world):
+        goto_direction(character, "up")
+
+def goto_down(character, world):
+        goto_direction(character, "down")
+        
+
+class Action:
+	def __init__(self, preconditions, effects, command, report_success, report_failure):
+		self.preconditions = preconditions
+		self.effects = effects
+		self.command = command
+		self.report_success = report_success
+		self.report_failure = report_failure
+	def attempt(self, character, world):
+		for cond in self.preconditions:
+			if not cond(character, world):
+				if(isinstance(character, Player)):
+					print("\n" + self.report_failure + "\n")
+				return False
+		# preconditions all true, now process effects
+		for eff in self.effects:
+			eff(character, world)
+			if(isinstance(character, Player)):
+				print("\n" + self.report_success + "\n")
+		return True
+
+
+
+"""
+
 class KnowledgeRepresentation:
 	def __init__(self):
 		self.room_knowledge = []
@@ -334,3 +436,7 @@ while player.isAlive:
 else:
 	print("You are dead.")
 
+# print("Hello World")
+# world = World()
+# while(True):
+#	world.update()
