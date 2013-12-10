@@ -1,8 +1,8 @@
-Stat Openness_to_experience
-Stat Conscientiousness
+## Stat Openness_to_experience
+## Stat Conscientiousness
 Stat Extraversion
 Stat Agreeableness
-Stat Neuroticism
+## Stat Neuroticism
 ## Stat Self-esteem
 ## Stat Harm_Avoidance
 ## Stat Novelty_seeking
@@ -14,6 +14,41 @@ Stat Neuroticism
 ## Stat Psychoticism
 ## Stat Obsessionality
 
+Name First ->
+John
+Ryan
+Paul
+Sally
+Mary
+Anne
+
+Greeting ->
+....
+: Extraversion 1
+: Agreeableness 5
+Uhh... hi.
+: Extraversion 3
+: Agreeableness 5
+Hello.
+: Extraversion 5 
+: Agreeableness 5
+Hi there, how are you?
+: Extraversion 7
+: Agreeableness 5
+Hi [Player.name].  How are you doing today?
+: Extraversion 9
+: Agreeableness 9
+Oh, it's you.
+: Extraversion 5
+: Agreeableness 3
+Leave me alone.
+: Extraversion 3
+: Agreeableness 1
+I'm busy.  Don't bother me.
+: Extraversion 7
+: Agreeableness 1
+
+#|
 Trait accessible ->
 minimize distance me colleagues
 
@@ -53,3 +88,4 @@ commitment + 2
 
 Trait incorruptible ->
 honesty + 2
+|#
