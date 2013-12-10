@@ -230,7 +230,7 @@ class World:
 				connect_1room(next_room)
 
 		def generate_characters():
-			def parse_trait_file(stats, first_names, dialog):
+			def parse_trait_file(stats, first_names, last_names, dialog):
 				print("Reading character data from disk...")
 				with open("trait_list.txt") as stat_file:
 					for line in stat_file:
@@ -255,9 +255,15 @@ class World:
 									if name_line == "\n":
 										break
 									first_names.append(name_line[:-1])
+							elif lines[1] == "Last":
+								for name_line in stat_file:
+									if name_line == "\n":
+										break
+									last_names.append(name_line[:-1])
 						else:
 							## We've got some dialog to parse.
 							dialog_type = []
+							print(line)
 							while(lines[0] != "->"):
 								if (lines[0] == "\n"):
 									break
@@ -286,11 +292,13 @@ class World:
 											current_lines = []
 											current_attributes = dict()
 										current_lines.append(dialog_line[:-1])
-			def generate_character(stats, first_names):
+			def generate_character(stats, first_names, last_names):
 				character_stats = dict()
 				for stat in stats:
 					character_stats[stat] = random.randint(0,9)
-				return Character(character_stats, first_names[random.randint(0,len(first_names) - 1)])
+				return Character(character_stats, 
+					first_names[random.randint(0,len(first_names) - 1)],
+					last_names[random.randint(0,len(last_names) - 1)])
 			def filter_dialog(character, dialog):
 				def optimality(dialog_line):
 					optimality = 0
@@ -312,12 +320,13 @@ class World:
 			stats = []
 			dialog = dict()
 			first_names = []
-			parse_trait_file(stats, first_names,dialog)
+			last_names = []
+			parse_trait_file(stats, first_names, last_names,dialog)
 			number_of_characters = random.randint(len(self.rooms), 2 * len(self.rooms))
 			print("Generating characters...")
 			for i in range(number_of_characters):
 				print(str(int(i/number_of_characters * 100)) + '%' + " complete.", end="\r")
-				self.characters.append(filter_dialog(generate_character(stats, first_names),dialog))
+				self.characters.append(filter_dialog(generate_character(stats, first_names, last_names),dialog))
 			print("100"+'%'+" complete.")
 		def populate_world():
 			print("Populating the world...")
@@ -362,13 +371,14 @@ class Room:
 		return "\n" + repr(self.theme) + "\n" + repr(self.furniture)
 
 class Character:
-	def __init__(self, stats, name):
-		self.name = name
+	def __init__(self, stats, first_name, last_name): 
+		self.first_name = first_name
+		self.last_name = last_name
 		self.stats = stats
 		self.room = None
 		self.dialog = dict()
 	def __repr__(self):
-		return repr(self.name) + "\n" + repr(self.stats) + "\n" + repr(self.dialog) + "\n"
+		return repr(self.first_name) + " " + repr(self.last_name) + "\n" + repr(self.stats) + "\n" + repr(self.dialog) + "\n"
 	def get_dialog(self,phrase):
 		return self.dialog[phrase][random.randint(0,len(self.dialog[phrase]) - 1)][0]
 
@@ -466,7 +476,7 @@ while player.isAlive:
 	for furniture in player.room.furniture:
 		print("There is a " + furniture.name + " in the room.\n")
 	for character in player.room.people:
-		print(character.name + " is in the room.\n")
+		print(character.first_name + " " + character.last_name + " is in the room.\n")
 	for k,v in player.room.connections.items():
 		if v == None:
 			continue
@@ -476,7 +486,18 @@ while player.isAlive:
 	while not action_accepted:
 		action = input("-->")
 		action_words = action.split()
-		if len(action_words) == 3:
+		if len(action_words) == 4:
+			if action_words[0] == "talk":
+				if action_words[1] == "to":
+					for character in player.room.people:
+						if action_words[2] == character.first_name and action_words[3] == character.last_name:
+							print(character.get_dialog("Greeting") + "\n")
+							break
+					else:
+						print("You talk at " + action_words[2] + ", but it's incapable of hearing.")
+				else:
+					print("You talk at nobody, and nobody is listening.")
+		elif len(action_words) == 3:
 			if action_words[0] == "go" or action_words[0] == "move":
 				if(action_words[1] == "to"):
 					for k,v in player.room.connections.items():
@@ -488,16 +509,6 @@ while player.isAlive:
 						print("You don't know how to get to the " + action_words[2])
 				else:
 					print("Movement commands require a target.")
-			elif action_words[0] == "talk":
-				if action_words[1] == "to":
-					for character in player.room.people:
-						if action_words[2] == character.name:
-							print(character.get_dialog("Greeting") + "\n")
-							break
-					else:
-						print("You talk at " + action_words[2] + ", but it's incapable of hearing.")
-				else:
-					print("You talk at nobody, and nobody is listening.")
 			else:
 				print("I don't understand you.")
 		elif len(action_words) == 2:

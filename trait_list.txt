@@ -22,6 +22,13 @@ Sally
 Mary
 Anne
 
+Name Last ->
+Smith
+Brown
+Jones
+White
+Lee
+
 Greeting ->
 ....
 : Extraversion 1
@@ -35,7 +42,7 @@ Hello.
 Hi there, how are you?
 : Extraversion 7
 : Agreeableness 5
-Hi [Player.name].  How are you doing today?
+Oh hey!  How are you doing today?
 : Extraversion 9
 : Agreeableness 9
 Oh, it's you.
