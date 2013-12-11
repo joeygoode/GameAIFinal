@@ -42,6 +42,9 @@ $ size 10
 : dining 20
 : kitchen 5
 : parlour 10
+$ state free
+> sit user.seat=None&this.state=free user.energy_per_turn+=1,this.state=occupied,user.seat=this
+> get_up this.state=occupied&user.seat=this this.state=free,user.energy_per_turn-=1,user.seat=None
 
 Furniture television ->
 $ size 10

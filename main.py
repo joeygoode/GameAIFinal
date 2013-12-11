@@ -2,16 +2,33 @@
 import os
 import random
 import math
+import functools
+from abc import ABCMeta
 
 random.seed()
 
 class World:
-	def __init__(self, rooms):
-		self.rooms = rooms
 	def __init__(self):
 		self.rooms = []
 		self.characters = []
 		def generate_rooms():
+			class FurnitureParser:
+				def __init__(self, name):
+					self.name = name
+					self.modifiers = dict()
+					self.attributes = dict()
+					self.actions = dict()
+				def to_furniture(self):
+					return Furniture(self.name, self.attributes, self.actions)
+			class RoomParser():
+				def __init__(self, theme, furniture):
+					self.theme = theme
+					self.furniture = furniture
+					self.connections = {"north":None, "south":None, "east":None, "west":None, "up":None, "down":None}
+				def to_room(self):
+					return Room(self.theme, map(self.furniture, lambda f: f.toFurniture), self.connections)
+				def __repr__(self):
+					return "\n" + repr(self.theme) + "\n" + repr(self.furniture)
 			def parse_furniture_file(room_types, furniture):
 				print("Reading furniture from disk...")
 				with open("furniture_list.txt") as room_file:
@@ -38,7 +55,51 @@ class World:
 												room_attributes[split_line[1]] = split_line[2]
 							room_types[room_type] = room_attributes
 						elif lines[0] == "Furniture":
-							this_item = Furniture(lines[1])
+							this_item = FurnitureParser(lines[1])
+							def parse_modifier(line):
+								room_type = line[1]
+								if room_type in room_types.keys():
+									room_modifier = int(line[2])
+									this_item.modifiers[room_type] = room_modifier
+							def parse_attribute(line):
+								attribute_name = line[1]
+								if attribute_name == "state":
+										this_item.attributes["state"] = line[2]
+								else:
+									try:
+										attribute_value = int(line[2])
+									except ValueError:
+										attribute_value = line[2]
+									this_item.attributes[attribute_name] = attribute_value
+							def parse_action(line):
+								action_name = line[1]
+								action_preconditions = None
+								action_effects = []
+								for andclause in line[2].split("&"):
+									ormap = None
+									for orclause in andclause.split("|"):
+										entity = orclause.split("=")[0].split(".")[0]
+										value = orclause.split("=")[1]
+										field = orclause.split("=")[0].split(".")[1]
+										ormap = OrCombinator(ormap, Precondition(entity,field,value))
+									action_preconditions = AndCombinator(action_preconditions,ormap)
+								for effect in line[3].split(","):
+									variable = effect.split("=")[0].split(".")[0]
+									field = effect.split("=")[0].split(".")[1]
+									try:
+										value = int(effect.split("=")[1])
+										if (field[-1] == "+"):
+											action_effects.append(IncrementorEffect(variable, field[:-1], value))
+										elif (field[-1] == "-"):
+											action_effects.append(DecrementorEffect(variable, field[:-1], value))
+										else:
+											action_effects.append(Effect(variable, field, value))
+									except ValueError:
+										value = effect.split("=")[1]
+										action_effects.append(Effect(variable, field, value))
+								this_item.actions[str(action_name)] = Action(action_preconditions, action_effects, "Success!", "Failed.")
+								print(action_name + ": " + repr(Action))
+								print(action_name == "sit")
 							if (lines[2] == "->"):
 								for attributes_line in room_file:
 									if attributes_line == "\n":
@@ -46,14 +107,11 @@ class World:
 									else:
 										split_line = attributes_line.split()
 										if split_line[0] == ":":
-											room_type = split_line[1]
-											if room_type in room_types.keys():
-												room_modifier = int(split_line[2])
-												this_item.modifiers[room_type] = room_modifier
-										if split_line[0] == "$":
-											attribute_name = split_line[1]
-											attribute_value = int(split_line[2])
-											this_item.attributes[attribute_name] = attribute_value
+											parse_modifier(split_line)
+										elif split_line[0] == "$":
+											parse_attribute(split_line)
+										elif split_line[0] == ">":
+											parse_action(split_line)
 							furniture.append(this_item)
 			def are_rooms_satisfied(room_satisfaction, room_types):
 				for k in room_types.keys():
@@ -263,7 +321,6 @@ class World:
 						else:
 							## We've got some dialog to parse.
 							dialog_type = []
-							print(line)
 							while(lines[0] != "->"):
 								if (lines[0] == "\n"):
 									break
@@ -296,14 +353,14 @@ class World:
 				character_stats = dict()
 				for stat in stats:
 					character_stats[stat] = random.randint(0,9)
-				return Character(character_stats, 
+				return AI(character_stats, 
 					first_names[random.randint(0,len(first_names) - 1)],
 					last_names[random.randint(0,len(last_names) - 1)])
 			def filter_dialog(character, dialog):
 				def optimality(dialog_line):
 					optimality = 0
 					for k,v in dialog_line[1].items():
-						for stat, value in character.stats.items():
+						for stat, value in character.attributes.items():
 							if k == stat:
 								optimality += math.fabs(v - value)
 					return optimality
@@ -312,9 +369,9 @@ class World:
 					for i in range(len(dialog_list)):
 						if optimality(dialog_list[i]) > 3:
 							if not dialog_list[:i]:
-								character.dialog[k] = dialog_list[:1]
+								character.attributes["dialog"][k] = dialog_list[:1]
 							else:
-								character.dialog[k] = dialog_list[:i]
+								character.attributes["dialog"][k] = dialog_list[:i]
 							break
 				return character
 			stats = []
@@ -351,15 +408,112 @@ def add(a, b):
 	return a + b
 
 class Furniture:
-	def __init__(self, name):
+	def __init__(self, name, attributes, actions):
+		#String
 		self.name = name
-		self.modifiers = dict()
-		self.attributes = dict()
+		#{String -> String or Integer}
+		self.attributes = attributes
+		#{String -> Action}
+		self.actions = actions
 	def __repr__(self):
 		string = "\n" + self.name + ": \n"
 		string = string + repr(self.modifiers) + "\n"
-		string = string + repr(self.attributes)
+		string = string + repr(self.attributes) + "\n"
+		string =  string + repr(self.actions)
 		return string
+
+class Action:
+	def __init__(self, preconditions, effects, success, failure):
+		# [Conditional]
+		self.preconditions = preconditions
+		# [Effect]
+		self.effects = effects
+		# String
+		self.success = success
+		# String
+		self.failure = failure
+	def attempt(self, character, target):
+		if self.preconditions.eval(character,target):
+			for effect in self.effects:
+				effect.apply(character, target)
+			print(self.success)
+			return True
+		print(self.failure)
+		return False
+
+class Conditional:
+	def eval(self,character, furniture):
+		pass
+
+class OrCombinator(Conditional):
+	def __init__(self,lhs, rhs):
+		self.lhs = lhs
+		self.rhs = rhs
+	def eval(self,character, furniture):
+		rhs = False
+		lhs = False
+		try:
+			rhs = self.rhs.eval(character, furniture)
+		except AttributeError:
+			rhs = False
+		try:
+			lhs = self.lhs.eval(character, furniture)
+		except AttributeError:
+			lhs = False
+		return lhs or rhs
+
+class AndCombinator(Conditional):
+	def __init__(self,lhs, rhs):
+		self.lhs = lhs
+		self.rhs = rhs
+	def eval(self,character, furniture):
+		rhs = True
+		lhs = True
+		try:
+			rhs = self.rhs.eval(character, furniture)
+		except AttributeError:
+			rhs = True
+		try:
+			lhs = self.lhs.eval(character, furniture)
+		except AttributeError:
+			lhs = True
+		return lhs and rhs
+
+class Precondition:
+	def __init__(self,target_entity, target_attribute, expected_value):
+		self.entity = target_entity
+		self.attribute = target_attribute
+		self.expected_value = expected_value
+	def eval(self,character, furniture):
+		if self.entity == "user":
+			return character.attributes[self.attribute] == self.expected_value
+		else:
+			return furniture.attributes[self.attribute] == self.expected_value
+
+class Effect:
+	def __init__(self,target_entity, target_attribute, value):
+		self.entity = target_entity
+		self.attribute = target_attribute
+		self.value = value
+	def apply(self,character, furniture):
+		if self.entity == "user":
+			character.attributes[self.attribute] = self.value
+		else:
+			furniture.attributes[self.attribute] = self.value
+
+class IncrementorEffect(Effect):
+	def apply(self,character, furniture):
+		if self.entity == "user":
+			character.attributes[self.attribute] += self.value
+		else:
+			furniture.attributes[self.attribute] += self.value
+
+class DecrementorEffect(Effect):
+	def apply(self,character, furniture):
+		if self.entity == "user":
+			character.attributes[self.attribute] -= self.value
+		else:
+			furniture.attributes[self.attribute] -= self.value
 
 class Room:
 	def __init__(self, theme, furniture):
@@ -371,21 +525,30 @@ class Room:
 		return "\n" + repr(self.theme) + "\n" + repr(self.furniture)
 
 class Character:
-	def __init__(self, stats, first_name, last_name): 
-		self.first_name = first_name
-		self.last_name = last_name
-		self.stats = stats
-		self.room = None
-		self.dialog = dict()
-	def __repr__(self):
-		return repr(self.first_name) + " " + repr(self.last_name) + "\n" + repr(self.stats) + "\n" + repr(self.dialog) + "\n"
-	def get_dialog(self,phrase):
-		return self.dialog[phrase][random.randint(0,len(self.dialog[phrase]) - 1)][0]
+	def __init__(self):
+		self.attributes = dict()
+		self.attributes["energy_per_turn"] = 0
+		self.attributes["seat"] = "None"
 
-class Player:
+class AI(Character):
+	def __init__(self, stats, first_name, last_name):
+		super(AI, self).__init__()
+		self.attributes["first_name"] = first_name 
+		self.attributes["last_name"] = last_name
+		self.attributes = dict(list(self.attributes.items()) + list(stats.items()))
+		self.attributes["room"] = None
+		self.attributes["dialog"] = dict()
+	def __repr__(self):
+		pass
+		#return repr(self.first_name) + " " + repr(self.last_name) + "\n" + repr(self.stats) + "\n" + repr(self.dialog) + "\n"
+	def get_dialog(self,phrase):
+		return self.attributes["dialog"][phrase][random.randint(0,len(self.attributes["dialog"][phrase]) - 1)][0]
+
+class Player(Character):
 	def __init__(self,world):
-		self.room = world.rooms[0]
-		self.isAlive = True
+		super(Player, self).__init__()
+		self.attributes["room"] = world.rooms[0]
+		self.attributes["is_Alive"] = True
 
 """
 class Character:
@@ -409,25 +572,7 @@ class Player(Character):
 
         
 
-class Action:
-	def __init__(self, preconditions, effects, command, report_success, report_failure):
-		self.preconditions = preconditions
-		self.effects = effects
-		self.command = command
-		self.report_success = report_success
-		self.report_failure = report_failure
-	def attempt(self, character, world):
-		for cond in self.preconditions:
-			if not cond(character, world):
-				if(isinstance(character, Player)):
-					print("\n" + self.report_failure + "\n")
-				return False
-		# preconditions all true, now process effects
-		for eff in self.effects:
-			eff(character, world)
-			if(isinstance(character, Player)):
-				print("\n" + self.report_success + "\n")
-		return True
+
 
 
 
@@ -470,14 +615,16 @@ class Trait:
 """
 world = World()
 player = Player(world)
-while player.isAlive:
-	print("The room you are in looks like a " + player.room.theme + "\n")
+while player.attributes["is_Alive"]:
+	print("The room you are in looks like a " + player.attributes["room"].theme + "\n")
+	#if player.attributes["energy_per_turn"] != 0:
+	print("You are gaining " + str(player.attributes["energy_per_turn"]) + " energy per turn.")
 	print("\n")
-	for furniture in player.room.furniture:
+	for furniture in player.attributes["room"].furniture:
 		print("There is a " + furniture.name + " in the room.\n")
-	for character in player.room.people:
-		print(character.first_name + " " + character.last_name + " is in the room.\n")
-	for k,v in player.room.connections.items():
+	for character in player.attributes["room"].people:
+		print(character.attributes["first_name"] + " " + character.attributes["last_name"] + " is in the room.\n")
+	for k,v in player.attributes["room"].connections.items():
 		if v == None:
 			continue
 		else:
@@ -486,47 +633,62 @@ while player.isAlive:
 	while not action_accepted:
 		action = input("-->")
 		action_words = action.split()
-		if len(action_words) == 4:
-			if action_words[0] == "talk":
-				if action_words[1] == "to":
-					for character in player.room.people:
-						if action_words[2] == character.first_name and action_words[3] == character.last_name:
-							print(character.get_dialog("Greeting") + "\n")
-							break
+		for furniture in player.attributes["room"].furniture:
+			if action_words[-1] == furniture.name:
+				act = functools.reduce(lambda x, y: x + y, action_words[:-1])
+				try:
+					action_accepted = furniture.actions[act].attempt(player, furniture)
+				except KeyError:
+					print(furniture.name + " has no command " + functools.reduce(lambda x, y: x + y, action_words[:-1], ""))
+				break
+		else:
+			if len(action_words) == 4:
+				if action_words[0] == "talk":
+					if action_words[1] == "to":
+						for character in player.attributes["room"].people:
+							if action_words[2] == character.attributes["first_name"] and action_words[3] == character.attributes["last_name"]:
+								print(character.get_dialog("Greeting") + "\n")
+								break
+						else:
+							print("You talk at " + action_words[2] + ", but it's incapable of hearing.")
 					else:
-						print("You talk at " + action_words[2] + ", but it's incapable of hearing.")
+						print("You talk at nobody, and nobody is listening.")
+			elif len(action_words) == 3:
+				if action_words[0] == "go" or action_words[0] == "move":
+					if player.attributes["seat"] != "None":
+						print("You're sitting down! get_up first!")
+						continue
+					if(action_words[1] == "to"):
+						for k,v in player.attributes["room"].connections.items():
+							if v != None and action_words[2] == v.theme:
+								player.room = v;
+								action_accepted = True
+								break
+						else:
+							print("You don't know how to get to the " + action_words[2])
+					else:
+						print("Movement commands require a target.")
 				else:
-					print("You talk at nobody, and nobody is listening.")
-		elif len(action_words) == 3:
-			if action_words[0] == "go" or action_words[0] == "move":
-				if(action_words[1] == "to"):
-					for k,v in player.room.connections.items():
-						if v != None and action_words[2] == v.theme:
-							player.room = v;
+					print("I don't understand you.")
+			elif len(action_words) == 2:
+				if action_words[0] == "kill" and action_words[1] == "me":
+					player.attributes["is_Alive"] = False
+					action_accepted = True
+				elif action_words[0] == "go" or action_words[0] == "move":
+					if player.attributes["seat"] != "None":
+						print("You're sitting down! get_up first!")
+						continue
+					for k,v in player.attributes["room"].connections.items():
+						if action_words[1] == k and v != None:
+							player.attributes["room"] = v;
 							action_accepted = True
 							break
 					else:
-						print("You don't know how to get to the " + action_words[2])
+						print("There isn't anything to the " + action_words[1])
 				else:
-					print("Movement commands require a target.")
+					print("I don't understand you.")
 			else:
 				print("I don't understand you.")
-		elif len(action_words) == 2:
-			if action_words[0] == "kill" and action_words[1] == "me":
-				player.isAlive = False
-				action_accepted = True
-			elif action_words[0] == "go" or action_words[0] == "move":
-				for k,v in player.room.connections.items():
-					if action_words[1] == k and v != None:
-						player.room = v;
-						action_accepted = True
-						break
-				else:
-					print("There isn't anything to the " + action_words[1])
-			else:
-				print("I don't understand you.")
-		else:
-			print("I don't understand you.")
 else:
 	print("You are dead.")
 
